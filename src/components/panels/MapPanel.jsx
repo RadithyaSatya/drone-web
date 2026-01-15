@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import L from 'leaflet'
 import Panel from '../ui/Panel.jsx'
+import { getEnvCoords } from '../../utils/location.js'
+import dockingMarker from '../../assets/ic_mark_docking.png'
 
 function MapPanel({ className, waypoints = [], onAddWaypoint, canAddWaypoints }) {
-  const [coords, setCoords] = useState({ lat: -6.2, lon: 106.816666 })
+  const envCoords = getEnvCoords()
+  const [coords, setCoords] = useState(
+    () => envCoords ?? { lat: -6.2, lon: 106.816666 },
+  )
   const [locationStatus, setLocationStatus] = useState('Detecting...')
   const mapRef = useRef(null)
   const mapContainerRef = useRef(null)
@@ -21,8 +26,21 @@ function MapPanel({ className, waypoints = [], onAddWaypoint, canAddWaypoints })
       }),
     [],
   )
+  const dockingIcon = useMemo(
+    () =>
+      L.icon({
+        iconUrl: dockingMarker,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+      }),
+    [dockingMarker],
+  )
 
   useEffect(() => {
+    if (envCoords) {
+      setLocationStatus('Docking')
+      return
+    }
     if (!navigator.geolocation) {
       setLocationStatus('Geolocation not supported')
       return
@@ -39,7 +57,7 @@ function MapPanel({ className, waypoints = [], onAddWaypoint, canAddWaypoints })
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
     )
-  }, [])
+  }, [envCoords])
 
   const addWaypointRef = useRef(onAddWaypoint)
   const canAddWaypointsRef = useRef(canAddWaypoints)
@@ -63,12 +81,8 @@ function MapPanel({ className, waypoints = [], onAddWaypoint, canAddWaypoints })
     }).addTo(map)
 
     markersRef.current = L.layerGroup().addTo(map)
-    currentMarkerRef.current = L.circleMarker([coords.lat, coords.lon], {
-      radius: 6,
-      color: '#22d3ee',
-      weight: 2,
-      fillColor: '#0ea5e9',
-      fillOpacity: 0.8,
+    currentMarkerRef.current = L.marker([coords.lat, coords.lon], {
+      icon: dockingIcon,
     }).addTo(map)
     pathRef.current = L.polyline([], {
       color: '#38bdf8',

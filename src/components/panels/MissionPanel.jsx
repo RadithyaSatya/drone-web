@@ -4,6 +4,7 @@ import {
   createMission,
   getMissionsByUser,
 } from '../../services/missionsService.js'
+import { getEnvCoords } from '../../utils/location.js'
 
 const REPEAT_OPTIONS = [
   { label: 'One Time', value: 'one_time' },
@@ -15,8 +16,16 @@ const TIME_OPTIONS = [
   { label: 'Later', value: 'later' },
 ]
 
-const getCurrentCoords = () =>
-  new Promise((resolve, reject) => {
+const getCurrentCoords = () => {
+  const envCoords = getEnvCoords()
+  if (envCoords) {
+    return Promise.resolve({
+      latitude: envCoords.lat,
+      longitude: envCoords.lon,
+    })
+  }
+
+  return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
       reject(new Error('Geolocation not supported'))
       return
@@ -35,6 +44,7 @@ const getCurrentCoords = () =>
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
     )
   })
+}
 
 const isRainyWeather = (code) =>
   (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95
@@ -74,7 +84,7 @@ function MissionPanel({
   const [missions, setMissions] = useState([])
   const [fetchError, setFetchError] = useState('')
   const [uploadError, setUploadError] = useState('')
-  const [missionName, setMissionName] = useState('Mission A')
+  const [missionName, setMissionName] = useState('')
   const [timeMode, setTimeMode] = useState('now')
   const [repeatMode, setRepeatMode] = useState('one_time')
   const [scheduleDate, setScheduleDate] = useState('')
@@ -233,6 +243,7 @@ function MissionPanel({
               value={missionName}
               onChange={(event) => setMissionName(event.target.value)}
               disabled={!isPlanning}
+              placeholder="Mission FLY"
               className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 focus:border-sky-400 focus:outline-none"
             />
           </label>

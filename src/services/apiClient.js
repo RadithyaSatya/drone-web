@@ -11,26 +11,23 @@ class ApiError extends Error {
   }
 }
 
-const resolveBaseUrl = (baseUrl) => {
-  if (!baseUrl) return window.location.origin
-  if (baseUrl.startsWith('http://') || baseUrl.startsWith('https://')) {
-    return baseUrl
-  }
-  if (baseUrl.startsWith('/')) {
-    return `${window.location.origin}${baseUrl}`
-  }
-  return `${window.location.origin}/${baseUrl}`
-}
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
 
-const buildUrl = (baseUrl, path, query) => {
-  const url = new URL(path, resolveBaseUrl(baseUrl))
+const buildUrl = (path, query) => {
+  let url = `${API_BASE}${path}`
+
   if (query && typeof query === 'object') {
-    Object.entries(query).forEach(([key, value]) => {
-      if (value === undefined || value === null) return
-      url.searchParams.set(key, String(value))
+    const params = new URLSearchParams()
+    Object.entries(query).forEach(([k, v]) => {
+      if (v !== undefined && v !== null) {
+        params.set(k, String(v))
+      }
     })
+    const qs = params.toString()
+    if (qs) url += `?${qs}`
   }
-  return url.toString()
+
+  return url
 }
 
 const parseResponse = async (response) => {
@@ -41,15 +38,22 @@ const parseResponse = async (response) => {
   return response.text()
 }
 
-const createApiClient = ({ baseUrl = '', getToken } = {}) => {
-  const request = async ({ path, method = 'GET', query, body, headers = {}, timeoutMs }) => {
+const createApiClient = ({ getToken } = {}) => {
+  const request = async ({
+    path,
+    method = 'GET',
+    query,
+    body,
+    headers = {},
+    timeoutMs,
+  }) => {
     const controller = new AbortController()
     const timeout = setTimeout(
       () => controller.abort(),
       timeoutMs ?? DEFAULT_TIMEOUT_MS
     )
 
-    const url = buildUrl(baseUrl || window.location.origin, path, query)
+    const url = buildUrl(path, query)
 
     try {
       const response = await fetch(url, {
@@ -75,23 +79,12 @@ const createApiClient = ({ baseUrl = '', getToken } = {}) => {
       }
 
       return data
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        throw new ApiError('Request timeout', {
-          status: 408,
-          statusText: 'Timeout',
-          data: null,
-          url,
-        })
-      }
-      throw error
     } finally {
       clearTimeout(timeout)
     }
   }
 
   return {
-    request,
     get: (path, options = {}) => request({ path, method: 'GET', ...options }),
     post: (path, body, options = {}) =>
       request({ path, method: 'POST', body, ...options }),
@@ -99,12 +92,9 @@ const createApiClient = ({ baseUrl = '', getToken } = {}) => {
       request({ path, method: 'PUT', body, ...options }),
     patch: (path, body, options = {}) =>
       request({ path, method: 'PATCH', body, ...options }),
-    del: (path, options = {}) => request({ path, method: 'DELETE', ...options }),
+    del: (path, options = {}) =>
+      request({ path, method: 'DELETE', ...options }),
   }
 }
 
-const apiClient = createApiClient({
-  baseUrl: import.meta.env.VITE_API_BASE_URL || '',
-})
-
-export { ApiError, createApiClient, apiClient }
+export const apiClient = createApiClient()
