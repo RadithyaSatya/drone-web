@@ -15,6 +15,7 @@ function MapPanel({ className, waypoints = [], onAddWaypoint, canAddWaypoints })
   const markersRef = useRef(null)
   const currentMarkerRef = useRef(null)
   const pathRef = useRef(null)
+  const firstLegRef = useRef(null)
   const hasCenteredRef = useRef(false)
   const waypointIcon = useMemo(
     () => (sequence) =>
@@ -73,12 +74,17 @@ function MapPanel({ className, waypoints = [], onAddWaypoint, canAddWaypoints })
     const map = L.map(mapContainerRef.current, {
       zoomControl: false,
       attributionControl: false,
+      minZoom: 12,
     }).setView([coords.lat, coords.lon], 14)
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors',
-    }).addTo(map)
+    L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      {
+        maxZoom: 19,
+        attribution:
+          'Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+      },
+    ).addTo(map)
 
     markersRef.current = L.layerGroup().addTo(map)
     currentMarkerRef.current = L.marker([coords.lat, coords.lon], {
@@ -88,6 +94,13 @@ function MapPanel({ className, waypoints = [], onAddWaypoint, canAddWaypoints })
       color: '#38bdf8',
       weight: 3,
       opacity: 0.8,
+      dashArray: '6 6',
+    }).addTo(map)
+    firstLegRef.current = L.polyline([], {
+      color: '#38bdf8',
+      weight: 2,
+      opacity: 0.8,
+      dashArray: '6 6',
     }).addTo(map)
 
     map.on('click', (event) => {
@@ -105,6 +118,7 @@ function MapPanel({ className, waypoints = [], onAddWaypoint, canAddWaypoints })
       markersRef.current = null
       currentMarkerRef.current = null
       pathRef.current = null
+      firstLegRef.current = null
       hasCenteredRef.current = false
     }
   }, [])
@@ -142,7 +156,18 @@ function MapPanel({ className, waypoints = [], onAddWaypoint, canAddWaypoints })
       ])
       pathRef.current.setLatLngs(latlngs)
     }
-  }, [waypoints, waypointIcon])
+    if (firstLegRef.current) {
+      if (waypoints.length > 0) {
+        const first = waypoints[0]
+        firstLegRef.current.setLatLngs([
+          [coords.lat, coords.lon],
+          [first.latitude, first.longitude],
+        ])
+      } else {
+        firstLegRef.current.setLatLngs([])
+      }
+    }
+  }, [waypoints, waypointIcon, coords.lat, coords.lon])
 
   return (
     <Panel
@@ -151,8 +176,7 @@ function MapPanel({ className, waypoints = [], onAddWaypoint, canAddWaypoints })
       className={className}
       actions={null}
     >
-      {/* Replace with a fully interactive OpenStreetMap integration if needed */}
-      <div className="relative flex flex-1 flex-col overflow-hidden rounded-xl border border-slate-700/70 bg-slate-950 text-slate-100">
+      <div className="relative flex min-h-[320px] flex-1 flex-col overflow-hidden rounded-xl border border-slate-700/70 bg-slate-950 text-slate-100 min-[900px]:min-h-0">
         <div className="pointer-events-none absolute left-3 right-3 top-3 z-[1000] flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-700/70 bg-slate-950/90 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-300 backdrop-blur">
           <span>Lat: {coords.lat.toFixed(6)}</span>
           <span>Lon: {coords.lon.toFixed(6)}</span>
