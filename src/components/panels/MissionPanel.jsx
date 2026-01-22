@@ -16,6 +16,10 @@ const TIME_OPTIONS = [
   { label: 'Later', value: 'later' },
 ]
 
+let dockingSocket = null
+let dockingSocketUsers = 0
+let dockingSocketCloseTimer = null
+
 const ACTION_OPTIONS = [
   { label: 'Select action', value: '' },
   { label: 'Take Picture', value: 'Take Picture' },
@@ -105,6 +109,7 @@ function MissionPanel({
   const [repeatMode, setRepeatMode] = useState('one_time')
   const [scheduleDate, setScheduleDate] = useState('')
   const [scheduleTime, setScheduleTime] = useState('')
+  const [dockingStatus, setDockingStatus] = useState('Offline')
 
   const userId = Number(import.meta.env.VITE_USER_ID || 1)
   const uavId = Number(import.meta.env.VITE_UAV_ID || 1)
@@ -161,6 +166,100 @@ function MissionPanel({
   useEffect(() => {
     loadMissions()
   }, [userId])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const envWsUrl = import.meta.env.VITE_WS_DOCKING_URL
+    const apiBase = import.meta.env.VITE_API_BASE_URL
+    const fallbackBase = window.location.origin
+    const rawBase = apiBase && apiBase.startsWith('http') ? apiBase : fallbackBase
+    const wsBase = rawBase.replace(/^http/, 'ws')
+    const wsUrl = envWsUrl || `${wsBase}/ws/docking`
+
+    dockingSocketUsers += 1
+    if (dockingSocketCloseTimer) {
+      clearTimeout(dockingSocketCloseTimer)
+      dockingSocketCloseTimer = null
+    }
+
+    let offlineTimer = null
+    const markOfflineSoon = () => {
+      if (offlineTimer) clearTimeout(offlineTimer)
+      offlineTimer = setTimeout(() => {
+        setDockingStatus('Offline')
+      }, 8000)
+    }
+
+    if (!dockingSocket || dockingSocket.readyState > WebSocket.OPEN) {
+      dockingSocket = new WebSocket(wsUrl)
+    }
+
+    dockingSocket.onopen = () => {
+      console.log('[dock-ws] connected')
+      setDockingStatus('Online')
+      markOfflineSoon()
+    }
+    dockingSocket.onmessage = (event) => {
+      console.log('[dock-ws] message', event.data)
+      if (offlineTimer) clearTimeout(offlineTimer)
+      try {
+        const data = JSON.parse(event.data)
+        if (typeof data?.online === 'boolean') {
+          setDockingStatus(data.online ? 'Online' : 'Offline')
+          markOfflineSoon()
+          return
+        }
+        const statusValue =
+          typeof data === 'string'
+            ? data
+            : data?.status ?? data?.state ?? data?.docking
+        if (typeof statusValue === 'string') {
+          const normalized = statusValue.trim().toLowerCase()
+          if (normalized === 'on' || normalized === 'online') {
+            setDockingStatus('Online')
+          } else if (
+            normalized === 'off' ||
+            normalized === 'offline' ||
+            normalized === 'disconnect' ||
+            normalized === 'disconnected'
+          ) {
+            setDockingStatus('Offline')
+          } else {
+            setDockingStatus(statusValue)
+          }
+          markOfflineSoon()
+          return
+        }
+        if (typeof statusValue === 'boolean') {
+          setDockingStatus(statusValue ? 'Online' : 'Offline')
+          markOfflineSoon()
+        }
+      } catch (error) {
+        setDockingStatus('Unknown')
+      }
+    }
+    dockingSocket.onerror = () => {
+      console.log('[dock-ws] error')
+      setDockingStatus('Offline')
+    }
+    dockingSocket.onclose = () => {
+      console.log('[dock-ws] closed')
+      setDockingStatus('Offline')
+    }
+
+    return () => {
+      if (offlineTimer) clearTimeout(offlineTimer)
+      dockingSocketUsers -= 1
+      if (dockingSocketUsers <= 0) {
+        dockingSocketCloseTimer = setTimeout(() => {
+          if (dockingSocket && dockingSocketUsers <= 0) {
+            dockingSocket.close()
+          }
+          dockingSocketCloseTimer = null
+        }, 300)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (!isPlanning) {
@@ -223,6 +322,12 @@ function MissionPanel({
   return (
     <Panel title="Missions" titleId="panel-missions" className={className}>
       <div className="flex flex-col gap-4 text-sm text-slate-200">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs uppercase tracking-wide text-slate-400">
+          <span>Docking Status</span>
+          <span className="rounded-full border border-slate-700 bg-slate-900 px-2 py-1 text-[11px] font-semibold text-slate-200">
+            {dockingStatus}
+          </span>
+        </div>
         {!isPlanning ? (
           <>
             <div className="flex flex-col gap-2 rounded-lg border border-slate-800 bg-slate-950/60 p-3">
@@ -250,9 +355,14 @@ function MissionPanel({
                         {mission.schedule}
                       </p>
                     </div>
-                    <span className="rounded-full border border-slate-700 px-2 py-1 text-xs text-slate-300">
-                      {mission.status}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full border border-slate-700 px-2 py-1 text-xs text-slate-300">
+                        {mission.status}
+                      </span>
+                      <span className="rounded-full border border-slate-800 bg-slate-950/60 px-2 py-1 text-xs text-slate-400">
+                        {mission.is_recurring ? 'Repeat' : 'One Time'}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>

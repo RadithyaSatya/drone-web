@@ -3,8 +3,16 @@ import L from 'leaflet'
 import Panel from '../ui/Panel.jsx'
 import { getEnvCoords } from '../../utils/location.js'
 import dockingMarker from '../../assets/ic_mark_docking.png'
+import MaximizeButton from '../ui/MaximizeButton.jsx'
 
-function MapPanel({ className, waypoints = [], onAddWaypoint, canAddWaypoints }) {
+function MapPanel({
+  className,
+  waypoints = [],
+  onAddWaypoint,
+  canAddWaypoints,
+  isMaximized = false,
+  onToggleMaximize = () => {},
+}) {
   const envCoords = getEnvCoords()
   const [coords, setCoords] = useState(
     () => envCoords ?? { lat: -6.2, lon: 106.816666 },
@@ -111,6 +119,10 @@ function MapPanel({ className, waypoints = [], onAddWaypoint, canAddWaypoints })
 
     mapRef.current = map
 
+    requestAnimationFrame(() => {
+      if (mapRef.current) mapRef.current.invalidateSize()
+    })
+
     return () => {
       map.off()
       map.remove()
@@ -121,6 +133,25 @@ function MapPanel({ className, waypoints = [], onAddWaypoint, canAddWaypoints })
       firstLegRef.current = null
       hasCenteredRef.current = false
     }
+  }, [])
+
+  useEffect(() => {
+    if (!mapContainerRef.current) return
+    if (typeof ResizeObserver === 'undefined') {
+      const handleResize = () => {
+        if (mapRef.current) mapRef.current.invalidateSize()
+      }
+      window.addEventListener('resize', handleResize)
+      return () => window.removeEventListener('resize', handleResize)
+    }
+
+    const observer = new ResizeObserver(() => {
+      if (mapRef.current) mapRef.current.invalidateSize()
+    })
+    observer.observe(mapContainerRef.current)
+    if (mapRef.current) mapRef.current.invalidateSize()
+
+    return () => observer.disconnect()
   }, [])
 
   useEffect(() => {
@@ -139,6 +170,16 @@ function MapPanel({ className, waypoints = [], onAddWaypoint, canAddWaypoints })
     if (!currentMarkerRef.current) return
     currentMarkerRef.current.setLatLng([coords.lat, coords.lon])
   }, [coords.lat, coords.lon])
+
+  useEffect(() => {
+    if (!mapRef.current) return
+    const timer = setTimeout(() => {
+      if (mapRef.current) {
+        mapRef.current.invalidateSize()
+      }
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [isMaximized])
 
   useEffect(() => {
     if (!markersRef.current) return
@@ -174,7 +215,13 @@ function MapPanel({ className, waypoints = [], onAddWaypoint, canAddWaypoints })
       title="Map"
       titleId="panel-map"
       className={className}
-      actions={null}
+      actions={
+        <MaximizeButton
+          isMaximized={isMaximized}
+          onToggle={onToggleMaximize}
+          label="map"
+        />
+      }
     >
       <div className="relative flex min-h-[320px] flex-1 flex-col overflow-hidden rounded-xl border border-slate-700/70 bg-slate-950 text-slate-100 min-[900px]:min-h-0">
         <div className="pointer-events-none absolute left-3 right-3 top-3 z-[1000] flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-700/70 bg-slate-950/90 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-300 backdrop-blur">
