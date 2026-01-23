@@ -171,6 +171,13 @@ function MapPanel({
     currentMarkerRef.current.setLatLng([coords.lat, coords.lon])
   }, [coords.lat, coords.lon])
 
+  const handleCenterDocking = () => {
+    if (!mapRef.current) return
+    mapRef.current.setView([coords.lat, coords.lon], mapRef.current.getZoom(), {
+      animate: true,
+    })
+  }
+
   useEffect(() => {
     if (!mapRef.current) return
     const timer = setTimeout(() => {
@@ -216,11 +223,37 @@ function MapPanel({
       titleId="panel-map"
       className={className}
       actions={
-        <MaximizeButton
-          isMaximized={isMaximized}
-          onToggle={onToggleMaximize}
-          label="map"
-        />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleCenterDocking}
+            aria-label="Center on docking"
+            className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-200 transition hover:bg-slate-800"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <circle cx="12" cy="12" r="8" />
+              <line x1="12" y1="2" x2="12" y2="6" />
+              <line x1="12" y1="18" x2="12" y2="22" />
+              <line x1="2" y1="12" x2="6" y2="12" />
+              <line x1="18" y1="12" x2="22" y2="12" />
+            </svg>
+          </button>
+          <MaximizeButton
+            isMaximized={isMaximized}
+            onToggle={onToggleMaximize}
+            label="map"
+          />
+        </div>
       }
     >
       <div className="relative flex min-h-[320px] flex-1 flex-col overflow-hidden rounded-xl border border-slate-700/70 bg-slate-950 text-slate-100 min-[900px]:min-h-0">

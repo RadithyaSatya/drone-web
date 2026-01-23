@@ -7,7 +7,10 @@ function Panel({ title, titleId, actions, children, className }) {
       }`}
     >
       <div className="flex items-start justify-between gap-4 border-b border-slate-800/70 pb-3">
-        <h2 id={titleId} className="text-lg font-semibold text-sky-300">
+        <h2
+          id={titleId}
+          className="text-lg font-semibold text-sky-300 font-display"
+        >
           {title}
         </h2>
         {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}

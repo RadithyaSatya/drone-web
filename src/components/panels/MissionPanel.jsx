@@ -94,6 +94,8 @@ function MissionPanel({
   isPlanning,
   planningStep,
   onPlanningStepChange,
+  showHideButton = false,
+  onHide,
 }) {
   const localStepFallback = useRef('waypoints')
   const currentStep = planningStep ?? localStepFallback.current
@@ -320,14 +322,35 @@ function MissionPanel({
   }
 
   return (
-    <Panel title="Missions" titleId="panel-missions" className={className}>
-      <div className="flex flex-col gap-4 text-sm text-slate-200">
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs uppercase tracking-wide text-slate-400">
-          <span>Docking Status</span>
-          <span className="rounded-full border border-slate-700 bg-slate-900 px-2 py-1 text-[11px] font-semibold text-slate-200">
-            {dockingStatus}
-          </span>
-        </div>
+    <Panel
+      title="Missions"
+      titleId="panel-missions"
+      className={className}
+      actions={
+        showHideButton ? (
+          <button
+            type="button"
+            onClick={onHide}
+            aria-label="Hide mission panel"
+            className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-200 transition hover:bg-slate-800"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="4" y1="12" x2="20" y2="12" />
+            </svg>
+          </button>
+        ) : null
+      }
+    >
+      <div className="flex flex-col gap-4 text-sm text-slate-200 max-[899px]:max-h-[65vh] max-[899px]:overflow-y-auto max-[899px]:pr-1">
         {!isPlanning ? (
           <>
             <div className="flex flex-col gap-2 rounded-lg border border-slate-800 bg-slate-950/60 p-3">
@@ -338,7 +361,7 @@ function MissionPanel({
               {fetchError ? (
                 <p className="text-sm text-rose-300">{fetchError}</p>
               ) : null}
-              <div className="flex max-h-40 flex-col gap-2 overflow-y-auto">
+              <div className="flex min-h-[240px] max-h-40 flex-col gap-2 overflow-y-auto">
                 {missions.length === 0 && !fetchError ? (
                   <p className="text-xs text-slate-500">No missions found.</p>
                 ) : null}
@@ -405,7 +428,7 @@ function MissionPanel({
                   <span>Waypoint Details</span>
                   <span>{waypoints.length} Items</span>
                 </div>
-                <div className="flex max-h-56 flex-col gap-3 overflow-y-auto rounded-lg border border-slate-800 bg-slate-950/40 p-3">
+              <div className="flex min-h-[240px] max-h-56 flex-col gap-3 overflow-y-auto rounded-lg border border-slate-800 bg-slate-950/40 p-3">
                   {waypoints.length === 0 ? (
                     <p className="text-xs text-slate-500">
                       Klik map untuk menambah waypoint.

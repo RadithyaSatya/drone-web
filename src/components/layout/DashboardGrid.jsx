@@ -9,6 +9,7 @@ function DashboardGrid() {
   const [isPlanning, setIsPlanning] = useState(false)
   const [planningStep, setPlanningStep] = useState('waypoints')
   const [maximizedPanel, setMaximizedPanel] = useState(null)
+  const [isFloatingMissionHidden, setIsFloatingMissionHidden] = useState(false)
 
   const handleAddWaypoint = useCallback((latitude, longitude) => {
     setWaypoints((prev) => [
@@ -73,6 +74,12 @@ function DashboardGrid() {
     )
   }, [isAnyMaximized])
 
+  useEffect(() => {
+    if (!isMapMaximized) {
+      setIsFloatingMissionHidden(false)
+    }
+  }, [isMapMaximized])
+
   return (
     <main className="flex-1 min-h-0 bg-slate-950 px-6 py-5">
       <div className="grid h-full grid-cols-1 gap-6 min-[900px]:grid-cols-2">
@@ -125,20 +132,36 @@ function DashboardGrid() {
         ) : null}
       </div>
       {isMapMaximized ? (
-        <div className="fixed bottom-4 right-4 z-50 w-[360px] max-w-[90vw] max-[899px]:left-1/2 max-[899px]:-translate-x-1/2 max-[899px]:w-[92vw] max-[899px]:max-w-[92vw]">
-          <MissionPanel
-            className="h-[70vh] max-h-[70vh] overflow-hidden max-[899px]:h-[45vh] max-[899px]:max-h-[45vh]"
-            waypoints={waypoints}
-            onClearWaypoints={handleClearWaypoints}
-            onUpdateWaypoint={handleUpdateWaypoint}
-            onDeleteWaypoint={handleDeleteWaypoint}
-            onStartPlanning={handleStartPlanning}
-            onFinishPlanning={handleFinishPlanning}
-            isPlanning={isPlanning}
-            planningStep={planningStep}
-            onPlanningStepChange={setPlanningStep}
-          />
-        </div>
+        <>
+          {!isFloatingMissionHidden ? (
+            <div className="fixed bottom-5 right-5 z-50 w-[360px] max-w-[90vw] max-[899px]:left-1/2 max-[899px]:-translate-x-1/2 max-[899px]:w-[92vw] max-[899px]:max-w-[92vw]">
+              <MissionPanel
+                className="h-[70vh] max-h-[70vh] overflow-hidden max-[899px]:h-[45vh] max-[899px]:max-h-[45vh]"
+                waypoints={waypoints}
+                onClearWaypoints={handleClearWaypoints}
+                onUpdateWaypoint={handleUpdateWaypoint}
+                onDeleteWaypoint={handleDeleteWaypoint}
+                onStartPlanning={handleStartPlanning}
+                onFinishPlanning={handleFinishPlanning}
+                isPlanning={isPlanning}
+                planningStep={planningStep}
+                onPlanningStepChange={setPlanningStep}
+                showHideButton
+                onHide={() => setIsFloatingMissionHidden(true)}
+              />
+            </div>
+          ) : (
+            <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
+              <button
+                type="button"
+                onClick={() => setIsFloatingMissionHidden(false)}
+                className="rounded-full border border-slate-700 bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-200 transition hover:bg-slate-800"
+              >
+                Show Mission
+              </button>
+            </div>
+          )}
+        </>
       ) : null}
       {isCctvMaximized ? (
         <CctvPanel
