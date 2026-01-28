@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Panel from '../ui/Panel.jsx'
 import {
   createMission,
@@ -116,7 +116,7 @@ function MissionPanel({
   const userId = Number(import.meta.env.VITE_USER_ID || 1)
   const uavId = Number(import.meta.env.VITE_UAV_ID || 1)
 
-  const scheduleValue = useMemo(() => {
+  const resolveSchedule = () => {
     if (timeMode === 'now') {
       return formatSchedule(getDefaultSchedule())
     }
@@ -124,7 +124,7 @@ function MissionPanel({
       return `${scheduleDate} ${scheduleTime}:00`
     }
     return formatSchedule(getDefaultSchedule())
-  }, [timeMode, scheduleDate, scheduleTime])
+  }
 
   const canSave =
     isPlanning &&
@@ -289,7 +289,7 @@ function MissionPanel({
         user_id: userId,
         uav_id: uavId,
         mission_name: missionName,
-        schedule: scheduleValue,
+        schedule: resolveSchedule(),
         is_recurring: repeatMode === 'repeat',
         status: 'Waiting',
         waypoints: waypoints.map((point) => ({

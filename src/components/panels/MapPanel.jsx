@@ -83,7 +83,7 @@ function MapPanel({
       zoomControl: false,
       attributionControl: false,
       minZoom: 12,
-    }).setView([coords.lat, coords.lon], 14)
+    }).setView([coords.lat, coords.lon], 19)
 
     L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
