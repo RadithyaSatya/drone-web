@@ -5,6 +5,7 @@ import {
   getMissionsByUser,
 } from '../../services/missionsService.js'
 import { getEnvCoords } from '../../utils/location.js'
+import { useNotifications } from '../../contexts/NotificationContext.jsx'
 
 const REPEAT_OPTIONS = [
   { label: 'One Time', value: 'one_time' },
@@ -16,9 +17,6 @@ const TIME_OPTIONS = [
   { label: 'Later', value: 'later' },
 ]
 
-let dockingSocket = null
-let dockingSocketUsers = 0
-let dockingSocketCloseTimer = null
 
 const ACTION_OPTIONS = [
   { label: 'Select action', value: '' },
@@ -111,7 +109,7 @@ function MissionPanel({
   const [repeatMode, setRepeatMode] = useState('one_time')
   const [scheduleDate, setScheduleDate] = useState('')
   const [scheduleTime, setScheduleTime] = useState('')
-  const [dockingStatus, setDockingStatus] = useState('Offline')
+  const { pushNotification } = useNotifications()
 
   const userId = Number(import.meta.env.VITE_USER_ID || 1)
   const uavId = Number(import.meta.env.VITE_UAV_ID || 1)
@@ -161,107 +159,18 @@ function MissionPanel({
       const data = await getMissionsByUser(userId)
       setMissions(data)
     } catch (error) {
-      setFetchError('Tidak bisa terhubung ke server')
+      setFetchError('Unable to reach the server')
+      pushNotification(
+        'Couldn’t load missions. Check your connection.',
+        'error',
+        'Missions',
+      )
     }
   }
 
   useEffect(() => {
     loadMissions()
   }, [userId])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const envWsUrl = import.meta.env.VITE_WS_DOCKING_URL
-    const apiBase = import.meta.env.VITE_API_BASE_URL
-    const fallbackBase = window.location.origin
-    const rawBase = apiBase && apiBase.startsWith('http') ? apiBase : fallbackBase
-    const wsBase = rawBase.replace(/^http/, 'ws')
-    const wsUrl = envWsUrl || `${wsBase}/ws/docking`
-
-    dockingSocketUsers += 1
-    if (dockingSocketCloseTimer) {
-      clearTimeout(dockingSocketCloseTimer)
-      dockingSocketCloseTimer = null
-    }
-
-    let offlineTimer = null
-    const markOfflineSoon = () => {
-      if (offlineTimer) clearTimeout(offlineTimer)
-      offlineTimer = setTimeout(() => {
-        setDockingStatus('Offline')
-      }, 8000)
-    }
-
-    if (!dockingSocket || dockingSocket.readyState > WebSocket.OPEN) {
-      dockingSocket = new WebSocket(wsUrl)
-    }
-
-    dockingSocket.onopen = () => {
-      console.log('[dock-ws] connected')
-      setDockingStatus('Online')
-      markOfflineSoon()
-    }
-    dockingSocket.onmessage = (event) => {
-      console.log('[dock-ws] message', event.data)
-      if (offlineTimer) clearTimeout(offlineTimer)
-      try {
-        const data = JSON.parse(event.data)
-        if (typeof data?.online === 'boolean') {
-          setDockingStatus(data.online ? 'Online' : 'Offline')
-          markOfflineSoon()
-          return
-        }
-        const statusValue =
-          typeof data === 'string'
-            ? data
-            : data?.status ?? data?.state ?? data?.docking
-        if (typeof statusValue === 'string') {
-          const normalized = statusValue.trim().toLowerCase()
-          if (normalized === 'on' || normalized === 'online') {
-            setDockingStatus('Online')
-          } else if (
-            normalized === 'off' ||
-            normalized === 'offline' ||
-            normalized === 'disconnect' ||
-            normalized === 'disconnected'
-          ) {
-            setDockingStatus('Offline')
-          } else {
-            setDockingStatus(statusValue)
-          }
-          markOfflineSoon()
-          return
-        }
-        if (typeof statusValue === 'boolean') {
-          setDockingStatus(statusValue ? 'Online' : 'Offline')
-          markOfflineSoon()
-        }
-      } catch (error) {
-        setDockingStatus('Unknown')
-      }
-    }
-    dockingSocket.onerror = () => {
-      console.log('[dock-ws] error')
-      setDockingStatus('Offline')
-    }
-    dockingSocket.onclose = () => {
-      console.log('[dock-ws] closed')
-      setDockingStatus('Offline')
-    }
-
-    return () => {
-      if (offlineTimer) clearTimeout(offlineTimer)
-      dockingSocketUsers -= 1
-      if (dockingSocketUsers <= 0) {
-        dockingSocketCloseTimer = setTimeout(() => {
-          if (dockingSocket && dockingSocketUsers <= 0) {
-            dockingSocket.close()
-          }
-          dockingSocketCloseTimer = null
-        }, 300)
-      }
-    }
-  }, [])
 
   useEffect(() => {
     if (!isPlanning) {
@@ -272,7 +181,9 @@ function MissionPanel({
   const handleCreateMission = async () => {
     setUploadError('')
     if (!canSave || !allWaypointsComplete) {
-      setUploadError('Lengkapi nama misi, waktu, dan waypoint sebelum menyimpan.')
+      setUploadError(
+        'Complete mission name, time, and waypoints before saving.',
+      )
       return
     }
     try {
@@ -280,7 +191,7 @@ function MissionPanel({
         const weatherCode = await checkWeather()
         if (weatherCode !== null && isRainyWeather(weatherCode)) {
           window.alert(
-            'Cuaca saat ini berpotensi hujan/drizzle. Pertimbangkan menunda misi.',
+            'Current weather may include rain or drizzle. Consider delaying the mission.',
           )
         }
       }
@@ -306,6 +217,11 @@ function MissionPanel({
       const success = await createMission(payload)
       if (!success) {
         setUploadError('Failed to save mission')
+        pushNotification(
+          'Couldn’t save the mission. Please try again.',
+          'error',
+          'Missions',
+        )
         return
       }
 
@@ -318,6 +234,11 @@ function MissionPanel({
       }
     } catch (error) {
       setUploadError('Failed to save mission')
+      pushNotification(
+        'Couldn’t save the mission. Please try again.',
+        'error',
+        'Missions',
+      )
     }
   }
 
@@ -566,8 +487,8 @@ function MissionPanel({
 
             {!allWaypointsComplete ? (
               <p className="text-xs text-amber-200">
-                Lengkapi semua data waypoint sebelum mengatur waktu dan
-                menyimpan misi.
+                Complete all waypoint data before scheduling and saving the
+                mission.
               </p>
             ) : null}
 

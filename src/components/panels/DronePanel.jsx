@@ -19,7 +19,6 @@ function DronePanel({
         />
       }
     >
-      {/* Replace with telemetry / FPV video integration */}
       <div
         role="img"
         aria-label="Drone stream placeholder"

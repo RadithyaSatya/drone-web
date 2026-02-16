@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Panel from '../ui/Panel.jsx'
 import MaximizeButton from '../ui/MaximizeButton.jsx'
+import { useNotifications } from '../../contexts/NotificationContext.jsx'
 
 function CctvPanel({
   className,
@@ -10,6 +11,7 @@ function CctvPanel({
   const videoRef = useRef(null)
   const [status, setStatus] = useState('Idle')
   const [error, setError] = useState('')
+  const { pushNotification } = useNotifications()
 
   useEffect(() => {
     const whepUrl = import.meta.env.VITE_CCTV_WHEP_URL
@@ -64,6 +66,11 @@ function CctvPanel({
             setStatus('Live')
           } else if (pc.connectionState === 'failed') {
             setStatus('Error')
+            pushNotification(
+              'CCTV stream is unavailable. Check network or URL.',
+              'error',
+              'CCTV',
+            )
           }
         }
 
@@ -90,7 +97,13 @@ function CctvPanel({
       } catch (err) {
         if (!isActive) return
         setStatus('Error')
-        setError(err instanceof Error ? err.message : 'Failed to connect')
+        const message = err instanceof Error ? err.message : 'Failed to connect'
+        setError(message)
+        pushNotification(
+          'CCTV stream failed to connect. Check the URL.',
+          'error',
+          'CCTV',
+        )
       }
     }
 
@@ -104,7 +117,7 @@ function CctvPanel({
         pc = null
       }
     }
-  }, [])
+  }, [pushNotification])
 
   return (
     <Panel
