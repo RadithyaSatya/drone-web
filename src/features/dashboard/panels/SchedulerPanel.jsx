@@ -1,4 +1,4 @@
-import Panel from '../ui/Panel.jsx'
+import Panel from '../../../shared/components/ui/Panel.jsx'
 
 function SchedulerPanel({ className }) {
   return (

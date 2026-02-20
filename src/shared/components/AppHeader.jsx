@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { NavLink } from 'react-router-dom'
 
-function Header({ dockingStatus = 'Offline' }) {
+function Header({ dockingStatus = 'Offline', onLogout }) {
   const [isStatusOpen, setIsStatusOpen] = useState(false)
   const [isOverlayMode, setIsOverlayMode] = useState(false)
   const buttonRef = useRef(null)
@@ -64,27 +65,66 @@ function Header({ dockingStatus = 'Offline' }) {
   }
 
   return (
-    <header className="relative z-[60] flex flex-col gap-3 border-b border-slate-800 bg-slate-950/80 px-6 py-3 text-slate-100 backdrop-blur">
-      <div className="flex w-full items-center justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-[0.4em] text-slate-500">
+    <header className="relative z-[60] border-b border-slate-800 bg-slate-950/80 px-4 py-4 text-slate-100 backdrop-blur sm:px-6">
+      <div className="flex w-full flex-col gap-4 md:flex-row md:items-stretch">
+        <div className="flex flex-col gap-1">
+          <p className="text-[10px] uppercase tracking-[0.4em] text-slate-500 sm:text-xs">
             Control Center
           </p>
-          <h1 className="text-2xl font-semibold text-sky-200 font-display">
+          <h1 className="text-xl font-semibold text-sky-200 font-display sm:text-2xl">
             X-Flight
           </h1>
         </div>
-        <div className="flex items-center gap-2">
+        <nav
+          className="flex w-full flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] sm:text-xs md:w-auto md:flex-none md:items-stretch md:gap-3 md:self-stretch"
+          aria-label="Primary"
+        >
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) =>
+              `inline-flex items-center justify-center border px-4 py-2 text-center transition md:-skew-x-12 md:rounded-sm md:px-6 md:py-0 md:h-full ${
+                isActive
+                  ? 'border-sky-400 bg-sky-400/15 text-sky-200'
+                  : 'border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800'
+              }`
+            }
+          >
+            <span className="md:skew-x-12">Dashboard</span>
+          </NavLink>
+          <NavLink
+            to="/history"
+            className={({ isActive }) =>
+              `inline-flex items-center justify-center border px-4 py-2 text-center transition md:-skew-x-12 md:rounded-sm md:px-6 md:py-0 md:h-full ${
+                isActive
+                  ? 'border-sky-400 bg-sky-400/15 text-sky-200'
+                  : 'border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800'
+              }`
+            }
+          >
+            <span className="md:skew-x-12">History</span>
+          </NavLink>
+        </nav>
+        <div className="flex flex-wrap items-center gap-2 md:ml-auto md:flex-none md:justify-end">
+        {onLogout ? (
+          <button
+            type="button"
+            onClick={onLogout}
+            className="rounded-full border border-slate-800 bg-slate-900 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:bg-slate-800 sm:px-4 sm:text-xs"
+          >
+            Logout
+          </button>
+        ) : null}
           <div className="relative group">
             <button
               type="button"
               aria-label="Battery status"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-800 bg-slate-900 text-slate-200 transition hover:bg-slate-800"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-800 bg-slate-900 text-slate-200 transition hover:bg-slate-800 sm:h-9 sm:w-9"
             >
               <svg
                 aria-hidden="true"
                 viewBox="0 0 24 24"
-                className="h-5 w-5"
+                className="h-4 w-4 sm:h-5 sm:w-5"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
@@ -110,12 +150,12 @@ function Header({ dockingStatus = 'Offline' }) {
             <button
               type="button"
               aria-label="RTK status"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-800 bg-slate-900 text-slate-200 transition hover:bg-slate-800"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-800 bg-slate-900 text-slate-200 transition hover:bg-slate-800 sm:h-9 sm:w-9"
             >
               <svg
                 aria-hidden="true"
                 viewBox="0 0 24 24"
-                className="h-5 w-5"
+                className="h-4 w-4 sm:h-5 sm:w-5"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
@@ -140,12 +180,12 @@ function Header({ dockingStatus = 'Offline' }) {
             <button
               type="button"
               aria-label="Docking status"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-800 bg-slate-900 text-slate-200 transition hover:bg-slate-800"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-800 bg-slate-900 text-slate-200 transition hover:bg-slate-800 sm:h-9 sm:w-9"
             >
               <svg
                 aria-hidden="true"
                 viewBox="0 0 24 24"
-                className="h-5 w-5"
+                className="h-4 w-4 sm:h-5 sm:w-5"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
@@ -176,12 +216,12 @@ function Header({ dockingStatus = 'Offline' }) {
               onClick={() => setIsStatusOpen((prev) => !prev)}
               aria-label="Open drone status"
               ref={buttonRef}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-800 bg-slate-900 text-slate-200 transition hover:bg-slate-800"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-800 bg-slate-900 text-slate-200 transition hover:bg-slate-800 sm:h-9 sm:w-9"
             >
               <svg
                 aria-hidden="true"
                 viewBox="0 0 24 24"
-                className="h-5 w-5"
+                className="h-4 w-4 sm:h-5 sm:w-5"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
@@ -201,7 +241,7 @@ function Header({ dockingStatus = 'Offline' }) {
             </button>
           </div>
         </div>
-      </div>
+        </div>
       {isStatusOpen
         ? createPortal(
             <div

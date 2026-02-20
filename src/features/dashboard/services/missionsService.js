@@ -1,4 +1,4 @@
-import { apiClient } from './apiClient.js'
+import { apiClient } from '../../../shared/services/apiClient.js'
 
 const MISSION_STATUS = {
   WAITING: 'WAITING',
@@ -18,8 +18,8 @@ const mapMissionToUi = (mission) => ({
   status: normalizeStatus(mission.status),
 })
 
-const getMissionsByUser = async (userId) => {
-  const data = await apiClient.get(`/missions/user/${userId}`)
+const getMissionsByUser = async () => {
+  const data = await apiClient.get('/missions/me')
   const missions = Array.isArray(data) ? data : []
   return missions.map(mapMissionToUi)
 }

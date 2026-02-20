@@ -1,5 +1,5 @@
-import Panel from '../ui/Panel.jsx'
-import MaximizeButton from '../ui/MaximizeButton.jsx'
+import Panel from '../../../shared/components/ui/Panel.jsx'
+import MaximizeButton from '../../../shared/components/ui/MaximizeButton.jsx'
 
 function DronePanel({
   className,

@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import Panel from '../ui/Panel.jsx'
+import Panel from '../../../shared/components/ui/Panel.jsx'
 import {
   createMission,
   getMissionsByUser,
-} from '../../services/missionsService.js'
-import { getEnvCoords } from '../../utils/location.js'
-import { useNotifications } from '../../contexts/NotificationContext.jsx'
+} from '../services/missionsService.js'
+import { getEnvCoords } from '../../../shared/utils/location.js'
+import { useNotifications } from '../../../shared/contexts/NotificationContext.jsx'
 
 const REPEAT_OPTIONS = [
   { label: 'One Time', value: 'one_time' },
@@ -111,7 +111,6 @@ function MissionPanel({
   const [scheduleTime, setScheduleTime] = useState('')
   const { pushNotification } = useNotifications()
 
-  const userId = Number(import.meta.env.VITE_USER_ID || 1)
   const uavId = Number(import.meta.env.VITE_UAV_ID || 1)
 
   const resolveSchedule = () => {
@@ -156,7 +155,7 @@ function MissionPanel({
   const loadMissions = async () => {
     setFetchError('')
     try {
-      const data = await getMissionsByUser(userId)
+      const data = await getMissionsByUser()
       setMissions(data)
     } catch (error) {
       setFetchError('Unable to reach the server')
@@ -170,7 +169,7 @@ function MissionPanel({
 
   useEffect(() => {
     loadMissions()
-  }, [userId])
+  }, [])
 
   useEffect(() => {
     if (!isPlanning) {
@@ -197,7 +196,6 @@ function MissionPanel({
       }
 
       const payload = {
-        user_id: userId,
         uav_id: uavId,
         mission_name: missionName,
         schedule: resolveSchedule(),
@@ -321,7 +319,7 @@ function MissionPanel({
               Create Mission
             </button>
             <span className="text-xs text-slate-400">
-              Klik Create Mission untuk mulai tambah waypoint.
+              Click Create Mission to start adding waypoints.
             </span>
             </div>
           </>
@@ -339,7 +337,7 @@ function MissionPanel({
                 Cancel Planning
               </button>
               <span className="text-xs text-slate-400">
-                Planning mode aktif. Klik map untuk tambah waypoint.
+                Planning mode is active. Click the map to add waypoints.
               </span>
             </div>
 
@@ -352,7 +350,7 @@ function MissionPanel({
               <div className="flex min-h-[240px] max-h-56 flex-col gap-3 overflow-y-auto rounded-lg border border-slate-800 bg-slate-950/40 p-3">
                   {waypoints.length === 0 ? (
                     <p className="text-xs text-slate-500">
-                      Klik map untuk menambah waypoint.
+                      Click the map to add waypoints.
                     </p>
                   ) : null}
                   {waypoints.map((point, index) => (

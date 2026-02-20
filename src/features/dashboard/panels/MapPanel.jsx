@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import L from 'leaflet'
-import Panel from '../ui/Panel.jsx'
-import { getEnvCoords } from '../../utils/location.js'
-import dockingMarker from '../../assets/ic_mark_docking.png'
-import MaximizeButton from '../ui/MaximizeButton.jsx'
+import Panel from '../../../shared/components/ui/Panel.jsx'
+import { getEnvCoords } from '../../../shared/utils/location.js'
+import dockingMarker from '../../../assets/ic_mark_docking.png'
+import MaximizeButton from '../../../shared/components/ui/MaximizeButton.jsx'
 
 function MapPanel({
   className,

@@ -1,3 +1,5 @@
+import { notifyServerError, notifyServerRecovery } from './serverStatus.js'
+
 const DEFAULT_TIMEOUT_MS = 15000
 
 class ApiError extends Error {
@@ -12,6 +14,12 @@ class ApiError extends Error {
 }
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
+const AUTH_TOKEN_KEY = 'xflight-auth-token'
+
+const getStoredToken = () => {
+  if (typeof window === 'undefined') return null
+  return window.localStorage.getItem(AUTH_TOKEN_KEY)
+}
 
 const buildUrl = (path, query) => {
   let url = `${API_BASE}${path}`
@@ -39,6 +47,7 @@ const parseResponse = async (response) => {
 }
 
 const createApiClient = ({ getToken } = {}) => {
+  const resolveToken = getToken || getStoredToken
   const request = async ({
     path,
     method = 'GET',
@@ -56,20 +65,39 @@ const createApiClient = ({ getToken } = {}) => {
     const url = buildUrl(path, query)
 
     try {
-      const response = await fetch(url, {
-        method,
-        headers: {
-          ...(body ? { 'Content-Type': 'application/json' } : {}),
-          ...(getToken ? { Authorization: `Bearer ${getToken()}` } : {}),
-          ...headers,
-        },
-        body: body ? JSON.stringify(body) : undefined,
-        signal: controller.signal,
-      })
+      const token = resolveToken ? resolveToken() : null
+      let response
+      try {
+        response = await fetch(url, {
+          method,
+          headers: {
+            ...(body ? { 'Content-Type': 'application/json' } : {}),
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...headers,
+          },
+          body: body ? JSON.stringify(body) : undefined,
+          signal: controller.signal,
+        })
+      } catch (error) {
+        if (error?.name !== 'AbortError') {
+          notifyServerError({
+            message: 'Connection issue. Please try again shortly.',
+            url,
+          })
+        }
+        throw error
+      }
 
       const data = await parseResponse(response)
 
       if (!response.ok) {
+        if (response.status >= 500) {
+          notifyServerError({
+            status: response.status,
+            message: 'Service is experiencing issues. Please try again shortly.',
+            url,
+          })
+        }
         throw new ApiError('Request failed', {
           status: response.status,
           statusText: response.statusText,
@@ -78,6 +106,7 @@ const createApiClient = ({ getToken } = {}) => {
         })
       }
 
+      notifyServerRecovery()
       return data
     } finally {
       clearTimeout(timeout)

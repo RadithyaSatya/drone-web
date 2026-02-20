@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import Panel from '../ui/Panel.jsx'
-import MaximizeButton from '../ui/MaximizeButton.jsx'
-import { useNotifications } from '../../contexts/NotificationContext.jsx'
+import Panel from '../../../shared/components/ui/Panel.jsx'
+import MaximizeButton from '../../../shared/components/ui/MaximizeButton.jsx'
+import { useNotifications } from '../../../shared/contexts/NotificationContext.jsx'
+import { useAuth } from '../../auth/context/AuthContext.jsx'
 
 function CctvPanel({
   className,
@@ -12,6 +13,7 @@ function CctvPanel({
   const [status, setStatus] = useState('Idle')
   const [error, setError] = useState('')
   const { pushNotification } = useNotifications()
+  const { token } = useAuth()
 
   useEffect(() => {
     const whepUrl = import.meta.env.VITE_CCTV_WHEP_URL
@@ -82,6 +84,7 @@ function CctvPanel({
           method: 'POST',
           headers: {
             'Content-Type': 'application/sdp',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
           body: pc.localDescription?.sdp || offer.sdp,
           signal: abortController.signal,
@@ -117,7 +120,7 @@ function CctvPanel({
         pc = null
       }
     }
-  }, [pushNotification])
+  }, [pushNotification, token])
 
   return (
     <Panel
