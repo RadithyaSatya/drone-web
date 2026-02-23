@@ -208,6 +208,7 @@ function UsersPage() {
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-slate-900/80 text-xs uppercase tracking-[0.2em] text-slate-500">
                   <tr>
+                    <th className="px-4 py-3">User ID</th>
                     <th className="px-4 py-3">User</th>
                     <th className="px-4 py-3">Email</th>
                     <th className="px-4 py-3">Phone</th>
@@ -221,7 +222,7 @@ function UsersPage() {
                     <tr>
                       <td
                         className="px-4 py-6 text-center text-slate-400"
-                        colSpan={6}
+                        colSpan={7}
                       >
                         Loading users...
                       </td>
@@ -229,6 +230,9 @@ function UsersPage() {
                   ) : items.length ? (
                     items.map((item) => (
                       <tr key={item.id} className="hover:bg-slate-900/40">
+                        <td className="px-4 py-3 text-slate-300">
+                          {item.id ?? '-'}
+                        </td>
                         <td className="px-4 py-3">
                           <div className="text-sm font-semibold text-slate-100">
                             {item.username || '-'}
@@ -255,7 +259,7 @@ function UsersPage() {
                     <tr>
                       <td
                         className="px-4 py-6 text-center text-slate-400"
-                        colSpan={6}
+                        colSpan={7}
                       >
                         No users yet.
                       </td>
