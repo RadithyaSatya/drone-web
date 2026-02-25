@@ -81,6 +81,13 @@ const formatSchedule = (date) => {
 
 const getDefaultSchedule = () => new Date(Date.now() + 120_000)
 
+const parseScheduleDateTime = (dateValue, timeValue) => {
+  if (!dateValue || !timeValue) return null
+  const parsed = new Date(`${dateValue}T${timeValue}:00`)
+  if (Number.isNaN(parsed.getTime())) return null
+  return parsed
+}
+
 function MissionPanel({
   className,
   waypoints,
@@ -185,6 +192,17 @@ function MissionPanel({
       )
       return
     }
+    if (timeMode === 'later') {
+      const scheduledDate = parseScheduleDateTime(scheduleDate, scheduleTime)
+      if (!scheduledDate) {
+        setUploadError('Please select a valid schedule date and time.')
+        return
+      }
+      if (scheduledDate.getTime() <= Date.now()) {
+        setUploadError('Schedule must be in the future.')
+        return
+      }
+    }
     try {
       if (timeMode === 'now') {
         const weatherCode = await checkWeather()
@@ -214,7 +232,7 @@ function MissionPanel({
 
       const success = await createMission(payload)
       if (!success) {
-        setUploadError('Failed to save mission')
+        setUploadError('Failed to save mission.')
         pushNotification(
           'Couldn’t save the mission. Please try again.',
           'error',
@@ -231,7 +249,13 @@ function MissionPanel({
         onFinishPlanning()
       }
     } catch (error) {
-      setUploadError('Failed to save mission')
+      const serverMessage =
+        error?.data?.error || error?.data?.message || error?.message
+      const friendlyMessage =
+        serverMessage && typeof serverMessage === 'string'
+          ? serverMessage
+          : 'Failed to save mission.'
+      setUploadError(friendlyMessage)
       pushNotification(
         'Couldn’t save the mission. Please try again.',
         'error',

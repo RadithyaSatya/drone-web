@@ -12,6 +12,9 @@ function MapPanel({
   canAddWaypoints,
   isMaximized = false,
   onToggleMaximize = () => {},
+  fitToWaypoints = false,
+  showOverlay = true,
+  showMaximize = true,
 }) {
   const envCoords = getEnvCoords()
   const [coords, setCoords] = useState(
@@ -191,22 +194,26 @@ function MapPanel({
   useEffect(() => {
     if (!markersRef.current) return
     markersRef.current.clearLayers()
-    waypoints.forEach((point, index) => {
+    const validPoints = waypoints.filter(
+      (point) =>
+        Number.isFinite(point?.latitude) && Number.isFinite(point?.longitude),
+    )
+    validPoints.forEach((point, index) => {
       const sequence = point.sequence_order || index + 1
       L.marker([point.latitude, point.longitude], {
         icon: waypointIcon(sequence),
       }).addTo(markersRef.current)
     })
     if (pathRef.current) {
-      const latlngs = waypoints.map((point) => [
+      const latlngs = validPoints.map((point) => [
         point.latitude,
         point.longitude,
       ])
       pathRef.current.setLatLngs(latlngs)
     }
     if (firstLegRef.current) {
-      if (waypoints.length > 0) {
-        const first = waypoints[0]
+      if (validPoints.length > 0) {
+        const first = validPoints[0]
         firstLegRef.current.setLatLngs([
           [coords.lat, coords.lon],
           [first.latitude, first.longitude],
@@ -215,7 +222,19 @@ function MapPanel({
         firstLegRef.current.setLatLngs([])
       }
     }
-  }, [waypoints, waypointIcon, coords.lat, coords.lon])
+    if (fitToWaypoints && mapRef.current && validPoints.length > 0) {
+      const bounds = L.latLngBounds(
+        validPoints.map((point) => [point.latitude, point.longitude]),
+      )
+      if (bounds.isValid()) {
+        mapRef.current.fitBounds(bounds, {
+          padding: [32, 32],
+          maxZoom: 18,
+          animate: false,
+        })
+      }
+    }
+  }, [waypoints, waypointIcon, coords.lat, coords.lon, fitToWaypoints])
 
   return (
     <Panel
@@ -248,21 +267,25 @@ function MapPanel({
               <line x1="18" y1="12" x2="22" y2="12" />
             </svg>
           </button>
-          <MaximizeButton
-            isMaximized={isMaximized}
-            onToggle={onToggleMaximize}
-            label="map"
-          />
+          {showMaximize ? (
+            <MaximizeButton
+              isMaximized={isMaximized}
+              onToggle={onToggleMaximize}
+              label="map"
+            />
+          ) : null}
         </div>
       }
     >
       <div className="relative flex min-h-[320px] flex-1 flex-col overflow-hidden rounded-xl border border-slate-700/70 bg-slate-950 text-slate-100 min-[900px]:min-h-0">
-        <div className="pointer-events-none absolute left-3 right-3 top-3 z-[1000] flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-700/70 bg-slate-950/90 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-300 backdrop-blur">
-          <span>Lat: {coords.lat.toFixed(6)}</span>
-          <span>Lon: {coords.lon.toFixed(6)}</span>
-          <span>Location: {locationStatus}</span>
-          <span>{canAddWaypoints ? 'Planning: On' : 'Planning: Off'}</span>
-        </div>
+        {showOverlay ? (
+          <div className="pointer-events-none absolute left-3 right-3 top-3 z-[1000] flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-700/70 bg-slate-950/90 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-300 backdrop-blur">
+            <span>Lat: {coords.lat.toFixed(6)}</span>
+            <span>Lon: {coords.lon.toFixed(6)}</span>
+            <span>Location: {locationStatus}</span>
+            <span>{canAddWaypoints ? 'Planning: On' : 'Planning: Off'}</span>
+          </div>
+        ) : null}
         <div
           ref={mapContainerRef}
           role="img"
